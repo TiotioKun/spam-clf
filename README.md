@@ -36,7 +36,7 @@
 │       ├── schemas.py         # Pydantic-схемы
 │       └── templates/
 │           └── index.html     # веб-интерфейс
-├── requirements.txt
+├── requirements-service.txt
 └── README.md
 ```
 

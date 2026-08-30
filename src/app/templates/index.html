@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Классификатор SMS — spam / ham</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#e8ecf1;        /* холодный фон, отсылка к подсветке старого экрана */
+    --panel:#ffffff;
+    --ink:#16202b;
+    --muted:#61748a;
+    --line:#ccd6e0;
+    --spam:#b3382c;
+    --ham:#1f6f52;
+    --accent:#2b4c6f;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"IBM Plex Sans",system-ui,sans-serif;
+    line-height:1.5;
+  }
+  .wrap{max-width:1080px; margin:0 auto; padding:32px 20px 64px}
+
+  header{border-bottom:2px solid var(--ink); padding-bottom:16px; margin-bottom:28px}
+  h1{
+    font-family:"Space Grotesk",sans-serif; font-weight:700;
+    font-size:clamp(26px,4vw,38px); letter-spacing:-.02em; margin:0 0 6px;
+  }
+  .sub{color:var(--muted); font-size:14px; margin:0}
+  .chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px}
+  .chip{
+    font-family:"IBM Plex Mono",monospace; font-size:12px;
+    background:var(--panel); border:1px solid var(--line);
+    padding:4px 10px; border-radius:2px;
+  }
+  .chip b{color:var(--accent)}
+
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:20px}
+  @media(max-width:820px){.grid{grid-template-columns:1fr}}
+
+  .panel{background:var(--panel); border:1px solid var(--line); padding:20px}
+  h2{
+    font-family:"Space Grotesk",sans-serif; font-size:13px; font-weight:500;
+    text-transform:uppercase; letter-spacing:.09em; color:var(--muted);
+    margin:0 0 14px;
+  }
+
+  textarea{
+    width:100%; min-height:150px; resize:vertical; padding:12px;
+    border:1px solid var(--line); background:#fbfcfd; color:var(--ink);
+    font-family:"IBM Plex Mono",monospace; font-size:14px; line-height:1.55;
+  }
+  textarea:focus{outline:2px solid var(--accent); outline-offset:1px}
+
+  .row{display:flex; gap:10px; align-items:center; margin-top:12px; flex-wrap:wrap}
+  button{
+    font-family:"Space Grotesk",sans-serif; font-weight:500; font-size:14px;
+    padding:10px 20px; border:1px solid var(--ink); background:var(--ink);
+    color:#fff; cursor:pointer;
+  }
+  button:hover{background:var(--accent); border-color:var(--accent)}
+  button:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+  button.ghost{background:transparent; color:var(--ink)}
+  button.ghost:hover{background:var(--ink); color:#fff}
+  .counter{margin-left:auto; font-family:"IBM Plex Mono",monospace;
+           font-size:12px; color:var(--muted)}
+
+  .samples{display:flex; flex-wrap:wrap; gap:6px; margin-top:12px}
+  .samples button{
+    font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:400;
+    padding:4px 9px; background:transparent; color:var(--muted);
+    border:1px dashed var(--line);
+  }
+  .samples button:hover{color:var(--ink); border-color:var(--ink); background:transparent}
+
+  /* Вердикт */
+  .verdict{border-left:5px solid var(--line); padding-left:16px; margin-bottom:18px}
+  .verdict.spam{border-color:var(--spam)}
+  .verdict.ham{border-color:var(--ham)}
+  .label{
+    font-family:"Space Grotesk",sans-serif; font-weight:700;
+    font-size:36px; letter-spacing:-.02em; line-height:1.1;
+  }
+  .verdict.spam .label{color:var(--spam)}
+  .verdict.ham .label{color:var(--ham)}
+  .conf{font-family:"IBM Plex Mono",monospace; font-size:13px; color:var(--muted)}
+
+  .meter{height:10px; background:#e3e9ef; margin:14px 0 6px; position:relative}
+  .meter i{display:block; height:100%; background:var(--spam)}
+  .meter::after{
+    content:""; position:absolute; left:50%; top:-3px; bottom:-3px;
+    width:1px; background:var(--ink); opacity:.5;
+  }
+  .scale{display:flex; justify-content:space-between;
+         font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--muted)}
+
+  /* Таблица признаков — «подпись» страницы: видно, что именно сработало */
+  table{width:100%; border-collapse:collapse; font-size:13px}
+  th{
+    text-align:left; font-weight:500; font-size:11px; text-transform:uppercase;
+    letter-spacing:.06em; color:var(--muted); padding:6px 8px;
+    border-bottom:1px solid var(--line);
+  }
+  td{padding:5px 8px; border-bottom:1px solid #eef2f5;
+     font-family:"IBM Plex Mono",monospace}
+  td.num{text-align:right}
+  .bar{display:inline-block; height:9px; vertical-align:middle}
+  .bar.pos{background:var(--spam)}
+  .bar.neg{background:var(--ham)}
+  .barcell{width:110px; text-align:center; white-space:nowrap}
+
+  .empty{color:var(--muted); font-size:14px; padding:24px 0; text-align:center}
+  .err{background:#fdf0ee; border-left:4px solid var(--spam); padding:12px 14px;
+       font-size:14px; margin-bottom:20px}
+  .filebox{margin-top:22px; padding-top:18px; border-top:1px solid var(--line)}
+  input[type=file]{font-size:13px; font-family:"IBM Plex Mono",monospace}
+  pre{background:#f4f7fa; border:1px solid var(--line); padding:12px;
+      font-family:"IBM Plex Mono",monospace; font-size:12px;
+      max-height:280px; overflow:auto; margin:12px 0 0}
+  footer{margin-top:32px; font-size:12px; color:var(--muted);
+         font-family:"IBM Plex Mono",monospace}
+  footer a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Классификатор SMS</h1>
+    <p class="sub">Итоговый проект по курсу «Погружение в ИИ». Вариант 3 — классические ML-модели.</p>
+    <div class="chips">
+      <span class="chip">модель: <b>{{ model_name }}</b></span>
+      {% if metrics %}
+        <span class="chip">F1 <b>{{ "%.4f"|format(metrics.get("F1", 0)) }}</b></span>
+        <span class="chip">Precision <b>{{ "%.4f"|format(metrics.get("Precision", 0)) }}</b></span>
+        <span class="chip">Recall <b>{{ "%.4f"|format(metrics.get("Recall", 0)) }}</b></span>
+      {% endif %}
+      <span class="chip"><a href="/docs" style="color:var(--accent)">API-документация</a></span>
+    </div>
+  </header>
+
+  {% if error %}<div class="err">{{ error }}</div>{% endif %}
+
+  <div class="grid">
+    <section class="panel">
+      <h2>Сообщение</h2>
+      <textarea id="text" placeholder="Вставьте текст SMS…"></textarea>
+      <div class="row">
+        <button id="go">Классифицировать</button>
+        <button class="ghost" id="clear">Очистить</button>
+        <span class="counter" id="counter">0 символов</span>
+      </div>
+
+      <div class="samples">
+        <button data-s="WIN a FREE iPhone! Call 09012345678 NOW!!! Claim your prize before it expires.">пример спама</button>
+        <button data-s="hey, are we still on for lunch tomorrow? let me know">пример обычного</button>
+        <button data-s="Please protect yourself from e-threats. The bank never asks for your password or PIN by SMS.">пограничный случай</button>
+      </div>
+
+      <div class="filebox">
+        <h2>Пакетная проверка</h2>
+        <input type="file" id="file" accept=".txt,.csv">
+        <div class="row"><button class="ghost" id="goFile">Проверить файл</button></div>
+        <pre id="fileOut" hidden></pre>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Результат</h2>
+      <div id="result">
+        <p class="empty">Введите сообщение и нажмите «Классифицировать».</p>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    Эндпоинты: POST /predict · POST /predict/file · GET /features · GET /feature/importance · GET /model/info
+  </footer>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const text = $("#text"), result = $("#result");
+
+text.addEventListener("input", () => {
+  $("#counter").textContent = text.value.length + " символов";
+});
+$("#clear").onclick = () => {
+  text.value = ""; text.dispatchEvent(new Event("input")); text.focus();
+  result.innerHTML = '<p class="empty">Введите сообщение и нажмите «Классифицировать».</p>';
+};
+document.querySelectorAll(".samples button").forEach(b => {
+  b.onclick = () => { text.value = b.dataset.s; text.dispatchEvent(new Event("input")); classify(); };
+});
+text.addEventListener("keydown", e => {
+  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) classify();
+});
+$("#go").onclick = classify;
+
+async function classify(){
+  const value = text.value.trim();
+  if (!value) { result.innerHTML = '<p class="empty">Сначала введите текст.</p>'; return; }
+  result.innerHTML = '<p class="empty">Считаем…</p>';
+  try{
+    const r = await fetch("/predict", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({text: value})
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.detail || "Ошибка запроса");
+    render(data);
+  }catch(err){
+    result.innerHTML = '<div class="err">' + err.message + '</div>';
+  }
+}
+
+function render(d){
+  const pct = (d.proba_spam * 100).toFixed(1);
+  // Показываем только признаки с ненулевым вкладом, максимум 8
+  const shown = d.features.filter(f => f.contribution !== null).slice(0, 8);
+  const maxAbs = Math.max(...shown.map(f => Math.abs(f.contribution)), 1e-9);
+
+  const rows = shown.map(f => {
+    const w = Math.round(Math.abs(f.contribution) / maxAbs * 46);
+    const positive = f.contribution > 0;
+    const bar = positive
+      ? `<span style="display:inline-block;width:48px"></span><span class="bar pos" style="width:${w}px"></span>`
+      : `<span class="bar neg" style="width:${w}px;margin-left:${48-w}px"></span>`;
+    return `<tr>
+      <td>${f.name}</td>
+      <td class="num">${fmt(f.value)}</td>
+      <td class="barcell">${bar}</td>
+    </tr>`;
+  }).join("");
+
+  result.innerHTML = `
+    <div class="verdict ${d.label}">
+      <div class="label">${d.label.toUpperCase()}</div>
+      <div class="conf">уверенность ${(d.confidence*100).toFixed(1)}%</div>
+    </div>
+    <div class="meter"><i style="width:${pct}%"></i></div>
+    <div class="scale"><span>ham 0%</span><span>p(spam) = ${pct}%</span><span>100% spam</span></div>
+    ${shown.length ? `
+      <h2 style="margin-top:22px">Что повлияло на решение</h2>
+      <table>
+        <thead><tr><th>Признак</th><th class="num">Значение</th><th class="barcell">Вклад</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <p class="conf" style="margin-top:10px">
+        Красный столбец сдвигает решение к спаму, зелёный — к обычному сообщению.
+      </p>` : ""}
+  `;
+}
+
+const fmt = v => Number.isInteger(v) ? v : v.toFixed(3);
+
+$("#goFile").onclick = async () => {
+  const f = $("#file").files[0], out = $("#fileOut");
+  if (!f) { out.hidden = false; out.textContent = "Выберите файл .txt или .csv — по одному сообщению в строке."; return; }
+  out.hidden = false; out.textContent = "Обрабатываем…";
+  const fd = new FormData(); fd.append("file", f);
+  try{
+    const r = await fetch("/predict/file", {method:"POST", body: fd});
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.detail || "Ошибка запроса");
+    out.textContent =
+      `${d.filename} — строк: ${d.total}, спам: ${d.spam_count}, обычных: ${d.ham_count}\n\n` +
+      d.results.map(x => `${String(x.line).padStart(3)}  ${x.label.padEnd(4)}  ${x.proba_spam.toFixed(3)}  ${x.text_preview}`).join("\n");
+  }catch(err){ out.textContent = "Ошибка: " + err.message; }
+};
+</script>
+</body>
+</html>

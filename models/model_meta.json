@@ -1,0 +1,37 @@
+{
+  "model_name": "LightGBM",
+  "feature_set": "combined",
+  "n_features": 1014,
+  "best_params": {
+    "features__tfidf__max_features": "1000",
+    "clf__subsample": "0.7",
+    "clf__n_estimators": "100",
+    "clf__max_depth": "5",
+    "clf__learning_rate": "0.2",
+    "clf__class_weight": "balanced"
+  },
+  "metrics_test": {
+    "Accuracy": 0.991,
+    "Precision": 0.9789,
+    "Recall": 0.949,
+    "F1": 0.9637,
+    "ROC-AUC": 0.9931
+  },
+  "manual_features": [
+    "n_chars",
+    "n_words",
+    "n_sentences",
+    "avg_word_len",
+    "n_unique_words",
+    "lexical_diversity",
+    "n_stopwords",
+    "stopword_ratio",
+    "n_punct",
+    "n_upper",
+    "upper_ratio",
+    "n_digits",
+    "digit_ratio",
+    "n_exclamations"
+  ],
+  "sklearn_version": "1.6.1"
+}

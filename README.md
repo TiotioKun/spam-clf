@@ -1,7 +1,16 @@
-**Работающий сервис:** https://spam-clf.onrender.com
+# Классификация текстов классическими ML-моделями
 
-Первое открытие может занять до минуты — бесплатный тариф
-поднимает сервис из спящего режима. Дальше работает быстро.
+[![Открыть исследование](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/TiotioKun/spam-clf/blob/main/notebooks/research.ipynb) — исследовательская часть
+
+[![Запустить веб-сервис](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/TiotioKun/spam-clf/blob/main/notebooks/run_service.ipynb) — веб-сервис
+
+**Для проверки ничего устанавливать не нужно.** Нажмите нужную кнопку,
+затем в Colab выберите «Среда выполнения → Выполнить все».
+Репозиторий, датасет и обученная модель загрузятся автоматически.
+Веб-сервис поднимется примерно за минуту и выдаст ссылку на интерфейс.
+
+Итоговый проект по курсу «Погружение в ИИ: от машинного обучения до БЯМ».
+**Вариант 3.** Задача: бинарная классификация SMS-сообщений (spam / ham).
 
 ## Результаты
 
@@ -21,13 +30,15 @@
 
 ```
 .
-├── data/                      # датасет и сохранённое разбиение
+├── data/
+│   └── SMSSpamCollection      # датасет
 ├── models/
 │   ├── best_model.joblib      # обученный пайплайн целиком
 │   └── model_meta.json        # метрики и гиперпараметры
 ├── notebooks/
-│   └── research.ipynb         # исследовательская часть
-├── reports/figures/           # графики для презентации
+│   ├── research.ipynb         # исследовательская часть
+│   └── run_service.ipynb      # запуск веб-сервиса в Colab
+├── reports/figures/           # графики
 ├── src/
 │   ├── features.py            # признаки — общий модуль
 │   ├── train.py               # обучение из командной строки
@@ -36,7 +47,8 @@
 │       ├── schemas.py         # Pydantic-схемы
 │       └── templates/
 │           └── index.html     # веб-интерфейс
-├── requirements-service.txt
+├── requirements.txt           # полный набор зависимостей
+├── requirements-service.txt   # только для веб-сервиса
 └── README.md
 ```
 
@@ -47,35 +59,15 @@
 и векторайзер, а весь пайплайн — сервис принимает сырой текст без
 предобработки.
 
-## Установка
+## Запуск на своём компьютере
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/TiotioKun/spam-clf.git
 cd spam-clf
 python -m venv venv
 source venv/bin/activate      # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
-
-## Данные
-
-Скачайте SMS Spam Collection и положите в `data/`:
-
-- UCI: https://archive.ics.uci.edu/static/public/228/sms+spam+collection.zip
-- Kaggle: датасет «SMS Spam Collection Dataset», файл `spam.csv`
-
-Скрипт обучения понимает оба формата — TSV из UCI и CSV с Kaggle.
-
-## Запуск
-
-**Обучение модели:**
-
-```bash
-python src/train.py
-```
-
-Полезные флаги: `--n-iter 5` для быстрой проверки, `--data path/to/file`
-для другого датасета.
 
 **Веб-сервис:**
 
@@ -86,6 +78,15 @@ uvicorn src.app.main:app --reload
 Интерфейс: http://127.0.0.1:8000
 Автодокументация API: http://127.0.0.1:8000/docs
 
+**Переобучение модели:**
+
+```bash
+python src/train.py
+```
+
+Полезные флаги: `--n-iter 5` для быстрой проверки, `--data path/to/file`
+для другого датасета. Датасет уже лежит в `data/`, скачивать не нужно.
+
 **Исследовательская часть:**
 
 ```bash
@@ -94,14 +95,14 @@ jupyter notebook notebooks/research.ipynb
 
 ## Эндпоинты
 
-| Метод  | Путь                  | Описание                                  |
-|--------|-----------------------|-------------------------------------------|
-| GET    | `/`                   | Главная страница                          |
-| POST   | `/predict`            | Классификация текста                      |
-| POST   | `/predict/file`       | Классификация из файла (.txt, .csv)       |
-| GET    | `/features`           | Список используемых признаков с описанием |
-| GET    | `/feature/importance` | Важность признаков                        |
-| GET    | `/model/info`         | Информация о модели и метрики             |
+| Метод | Путь                  | Описание                                  |
+|-------|-----------------------|-------------------------------------------|
+| GET   | `/`                   | Главная страница                          |
+| POST  | `/predict`            | Классификация текста                      |
+| POST  | `/predict/file`       | Классификация из файла (.txt, .csv)       |
+| GET   | `/features`           | Список используемых признаков с описанием |
+| GET   | `/feature/importance` | Важность признаков                        |
+| GET   | `/model/info`         | Информация о модели и метрики             |
 
 Пример запроса:
 
@@ -117,4 +118,6 @@ curl -X POST http://127.0.0.1:8000/predict \
 как произведение коэффициента на значение признака. Этот разбор выводится
 и в веб-интерфейсе в таблице «Что повлияло на решение».
 
+## Автор
 
+_ФИО, группа_
